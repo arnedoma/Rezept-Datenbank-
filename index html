@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezeptgenerator für die Pflegeheimküche</title>
+    <style>
+        /* --- Allgemeine Stile --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+        }
+
+        h1, h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: calc(100% - 22px); /* Padding berücksichtigen */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box; /* Padding im Width inkludieren */
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px; /* Für den Fall, dass sie nebeneinander stehen */
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button.secondary {
+            background-color: #007bff;
+        }
+
+        button.secondary:hover {
+            background-color: #0056b3;
+        }
+
+        button.danger {
+            background-color: #dc3545;
+        }
+
+        button.danger:hover {
+            background-color: #c82333;
+        }
+
+        /* --- Zutatenbereich --- */
+        .ingredient-input-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto; /* Lebensmittel, Menge, Preis, Button */
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 20px;
+        }
+
+        .ingredient-input-grid div {
+            margin-bottom: 0; /* Überschreibt label margin-bottom */
+        }
+
+        .ingredient-input-grid button {
+            margin-bottom: 0;
+            height: 42px; /* Angleichen an Input-Höhe */
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+
+        /* --- Zutatenliste Tabelle --- */
+        #zutatenListe {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        #zutatenListe th, #zutatenListe td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        #zutatenListe th {
+            background-color: #eaf1f1;
+            font-weight: bold;
+            color: #444;
+        }
+
+        #zutatenListe tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        #zutatenListe .remove-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background-color 0.2s ease;
+        }
+
+        #zutatenListe .remove-btn:hover {
+            background-color: #cc0000;
+        }
+
+        /* --- Ergebnisbereich --- */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e8f5e9; /* Leichter Grünton für Ergebnisse */
+            border-radius: 8px;
+        }
+
+        .result-item {
+            padding: 10px;
+            border: 1px solid #d4edda;
+            border-radius: 5px;
+            background-color: #f0fdf0;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .result-item span {
+            float: right;
+            color: #007bff;
+        }
+
+        /* --- Rezeptübersicht (für Speichern/Laden) --- */
+        #gespeicherteRezepteListe {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+            max-height: 200px; /* Scrollbar, wenn viele Rezepte */
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+
+        #gespeicherteRezepteListe li {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fff;
+            transition: background-color 0.2s ease;
+        }
+
+        #gespeicherteRezepteListe li:last-child {
+            border-bottom: none;
+        }
+
+        #gespeicherteRezepteListe li:hover {
+            background-color: #f0f0f0;
+        }
+
+        #gespeicherteRezepteListe li button {
+            margin-left: 10px;
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            background-color: #6c757d;
+        }
+
+        #gespeicherteRezepteListe li button:hover {
+            background-color: #5a6268;
+        }
+        
+        #gespeicherteRezepteListe li button.danger {
+            background-color: #dc3545;
+        }
+
+        #gespeicherteRezepteListe li button.danger:hover {
+            background-color: #c82333;
+        }
+
+        /* --- Druckstile --- */
+        @media print {
+            body {
+                background-color: #fff;
+                margin: 0;
+                padding: 0;
+                font-size: 11pt; /* Etwas kleinere Schrift für den Druck */
+            }
+
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+                padding: 20mm; /* Für Druckränder */
+                max-width: none;
+                width: auto;
+            }
+
+            /* Elemente ausblenden, die nicht gedruckt werden sollen */
+            .eingabe-bereich,
+            .ingredient-input-grid,
+            .action-buttons,
+            .lade-speicher-buttons,
+            #gespeicherteRezepteListe,
+            h2:first-of-type, /* 'Zutaten hinzufügen' Überschrift */
+            h2:nth-of-type(3) /* 'Gespeicherte Rezepte' Überschrift */
+            {
+                display: none;
+            }
+
+            /* Nur relevante Überschriften anzeigen */
+            h1 {
+                text-align: left;
+                margin-bottom: 20px;
+                font-size: 24pt;
+            }
+
+            h2 {
+                border-bottom: 1px solid #ccc;
+                padding-bottom: 5px;
+                margin-top: 25px;
+                font-size: 16pt;
+                text-align: left;
+            }
+
+            /* Tabelle für den Druck optimieren */
+            #zutatenListe {
+                page-break-inside: auto; /* Tabelle nicht in der Mitte umbrechen */
+            }
+
+            #zutatenListe thead {
+                display: table-header-group; /* Tabellenkopf auf jeder neuen Seite */
+            }
+
+            #zutatenListe tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            #zutatenListe th, #zutatenListe td {
+                border: 1px solid #ccc;
+                padding: 8px;
+            }
+
+            /* Ergebnisbereich für den Druck anpassen */
+            .results-grid {
+                grid-template-columns: 1fr; /* Einzelne Spalte im Druck */
+                background-color: #fff;
+                border: none;
+                padding: 0;
+                margin-top: 20px;
+            }
+            .result-item {
+                border: none;
+                background-color: #fff;
+                padding: 5px 0;
+                font-size: 1rem;
+                color: #333;
+            }
+            .result-item span {
+                color: #333; /* Schwarze Farbe für Werte im Druck */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rezeptgenerator für die Pflegeheimküche</h1>
+
+        <div class="eingabe-bereich">
+            <h2>Rezeptdetails</h2>
+            <label for="rezeptName">Rezeptname:</label>
+            <input type="text" id="rezeptName" placeholder="Z.B. Herzhafter Kartoffeleintopf">
+
+            <label for="portionsAnzahl">Portionsanzahl:</label>
+            <input type="number" id="portionsAnzahl" value="10" min="1">
+
+            <label for="zubereitungsAnleitung">Zubereitungsanleitung:</label>
+            <textarea id="zubereitungsAnleitung" placeholder="Schritt 1: ..."></textarea>
+        </div>
+
+        <h2>Zutaten hinzufügen</h2>
+        <div class="ingredient-input-grid">
+            <div>
+                <label for="lebensmittelAuswahl">Lebensmittel:</label>
+                <select id="lebensmittelAuswahl">
+                    <option value="">Bitte auswählen...</option>
+                    </select>
+            </div>
+            <div>
+                <label for="mengeInput">Menge (g/ml/Stk.):</label>
+                <input type="number" id="mengeInput" value="100" min="0">
+            </div>
+            <div>
+                <label for="preisProEinheitInput">Preis pro 100g/ml/Stk. (€):</label>
+                <input type="number" id="preisProEinheitInput" step="0.01" value="0.50" min="0">
+            </div>
+            <div>
+                <button onclick="addZutat()">Zutat hinzufügen</button>
+            </div>
+        </div>
+
+        <h2>Aktuelles Rezept: <span id="currentRezeptName">Neues Rezept</span></h2>
+        <table id="zutatenListe">
+            <thead>
+                <tr>
+                    <th>Lebensmittel</th>
+                    <th>Menge</th>
+                    <th>Preis/Einheit (€)</th>
+                    <th>Gesamtpreis (€)</th>
+                    <th>Kalorien/Einheit (kcal)</th>
+                    <th>Gesamtkalorien (kcal)</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+
+        <div class="results-grid">
+            <div class="result-item">Gesamtkosten Rezept: <span id="gesamtKosten">0.00 €</span></div>
+            <div class="result-item">Gesamtkalorien Rezept: <span id="gesamtKalorien">0.00 kcal</span></div>
+            <div class="result-item">Preis pro Portion: <span id="preisProPortion">0.00 €</span></div>
+            <div class="result-item">Kalorien pro Portion: <span id="kalorienProPortion">0.00 kcal</span></div>
+        </div>
+
+        <div class="action-buttons" style="margin-top: 30px; text-align: center;">
+            <button class="secondary" onclick="calculateRezept()">Rezept aktualisieren</button>
+            <button onclick="saveCurrentRecipe()">Rezept speichern</button>
+            <button onclick="window.print()">Rezept drucken</button>
+            <button class="danger" onclick="clearForm()">Neues Rezept / Leeren</button>
+        </div>
+
+        <h2>Gespeicherte Rezepte</h2>
+        <ul id="gespeicherteRezepteListe">
+            <li>Keine Rezepte gespeichert.</li>
+        </ul>
+    </div>
+
+    <script>
+        // --- Lebensmitteldatenbank (20 Beispiele) ---
+        const lebensmittelDaten = [
+            { id: 1, name: "Kartoffeln", kalorienPro100g: 77, standardPreisPro100g: 0.15 },
+            { id: 2, name: "Karotten", kalorienPro100g: 41, standardPreisPro100g: 0.10 },
+            { id: 3, name: "Rinderhackfleisch (mager)", kalorienPro100g: 150, standardPreisPro100g: 0.80 },
+            { id: 4, name: "Zwiebeln", kalorienPro100g: 40, standardPreisPro100g: 0.05 },
+            { id: 5, name: "Olivenöl", kalorienPro100g: 884, standardPreisPro100g: 1.50 },
+            { id: 6, name: "Reis (ungekocht)", kalorienPro100g: 360, standardPreisPro100g: 0.20 },
+            { id: 7, name: "Hähnchenbrust", kalorienPro100g: 165, standardPreisPro100g: 0.70 },
+            { id: 8, name: "Brokkoli", kalorienPro100g: 34, standardPreisPro100g: 0.30 },
+            { id: 9, name: "Erbsen (tiefgekühlt)", kalorienPro100g: 81, standardPreisPro100g: 0.25 },
+            { id: 10, name: "Milch (3,5% Fett)", kalorienPro100ml: 64, standardPreisPro100ml: 0.09 },
+            { id: 11, name: "Mehl (Weizen)", kalorienPro100g: 364, standardPreisPro100g: 0.08 },
+            { id: 12, name: "Butter", kalorienPro100g: 717, standardPreisPro100g: 0.60 },
+            { id: 13, name: "Eier (pro Stk.)", kalorienProStk: 76, standardPreisProStk: 0.25 },
+            { id: 14, name: "Tomaten (frisch)", kalorienPro100g: 18, standardPreisPro100g: 0.12 },
+            { id: 15, name: "Nudeln (trocken)", kalorienPro100g: 371, standardPreisPro100g: 0.18 },
+            { id: 16, name: "Käse (Gouda, 45% Fett)", kalorienPro100g: 356, standardPreisPro100g: 0.90 },
+            { id: 17, name: "Lachs (frisch)", kalorienPro100g: 208, standardPreisPro100g: 2.50 },
+            { id: 18, name: "Spinat (frisch)", kalorienPro100g: 23, standardPreisPro100g: 0.40 },
+            { id: 19, name: "Apfel", kalorienPro100g: 52, standardPreisPro100g: 0.20 },
+            { id: 20, name: "Joghurt (Natur, 3,5% Fett)", kalorienPro100g: 61, standardPreisPro100g: 0.15 }
+        ];
+
+        let currentRecipe = {
+            name: '',
+            portions: 10,
+            instructions: '',
+            ingredients: []
+        };
+        let storedRecipes = [];
+
+        const lebensmittelAuswahl = document.getElementById('lebensmittelAuswahl');
+        const mengeInput = document.getElementById('mengeInput');
+        const preisProEinheitInput = document.getElementById('preisProEinheitInput');
+        const zutatenListeBody = document.querySelector('#zutatenListe tbody');
+        const rezeptNameInput = document.getElementById('rezeptName');
+        const portionsAnzahlInput = document.getElementById('portionsAnzahl');
+        const zubereitungsAnleitungInput = document.getElementById('zubereitungsAnleitung');
+        const currentRezeptNameSpan = document.getElementById('currentRezeptName');
+        const gespeicherteRezepteListe = document.getElementById('gespeicherteRezepteListe');
+
+        // --- Initialisierung der Lebensmittel-Dropdownliste ---
+        function populateLebensmittelDropdown() {
+            lebensmittelDaten.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                lebensmittelAuswahl.appendChild(option);
+            });
+
+            // Setzt Standardwerte, wenn ein Lebensmittel ausgewählt wird
+            lebensmittelAuswahl.addEventListener('change', () => {
+                const selectedId = parseInt(lebensmittelAuswahl.value);
+                const selectedFood = lebensmittelDaten.find(food => food.id === selectedId);
+                if (selectedFood) {
+                    if (selectedFood.standardPreisPro100g) {
+                        preisProEinheitInput.value = selectedFood.standardPreisPro100g.toFixed(2);
+                        mengeInput.value = 100; // Standardmenge
+                    } else if (selectedFood.standardPreisPro100ml) {
+                        preisProEinheitInput.value = selectedFood.standardPreisPro100ml.toFixed(2);
+                        mengeInput.value = 100; // Standardmenge
+                    } else if (selectedFood.standardPreisProStk) {
+                        preisProEinheitInput.value = selectedFood.standardPreisProStk.toFixed(2);
+                        mengeInput.value = 1; // Standardmenge
+                    }
+                }
+            });
+        }
+
+        // --- Zutat zum Rezept hinzufügen ---
+        function addZutat() {
+            const selectedId = parseInt(lebensmittelAuswahl.value);
+            const menge = parseFloat(mengeInput.value);
+            const preisProEinheit = parseFloat(preisProEinheitInput.value);
+
+            if (!selectedId || isNaN(menge) || menge <= 0 || isNaN(preisProEinheit) || preisProEinheit < 0) {
+                alert('Bitte wählen Sie ein Lebensmittel aus und geben Sie gültige Mengen und Preise ein.');
+                return;
+            }
+
+            const selectedFood = lebensmittelDaten.find(food => food.id === selectedId);
+            if (!selectedFood) return;
+
+            // Prüfen, ob Zutat bereits im Rezept ist, und aktualisieren
+            const existingIngredientIndex = currentRecipe.ingredients.findIndex(ing => ing.id === selectedId);
+
+            if (existingIngredientIndex > -1) {
+                // Zutat existiert, Menge und Preis aktualisieren
+                currentRecipe.ingredients[existingIngredientIndex].menge = menge;
+                currentRecipe.ingredients[existingIngredientIndex].preisProEinheit = preisProEinheit;
+            } else {
+                // Neue Zutat hinzufügen
+                currentRecipe.ingredients.push({
+                    id: selectedId,
+                    name: selectedFood.name,
+                    menge: menge,
+                    preisProEinheit: preisProEinheit,
+                    kalorienPro100g: selectedFood.kalorienPro100g || selectedFood.kalorienPro100ml || selectedFood.kalorienProStk,
+                    unitType: selectedFood.kalorienPro100g ? 'g/ml' : 'Stk' // Hilfswert für Anzeige
+                });
+            }
+            renderZutatenListe();
+            calculateRezept();
+        }
+
+        // --- Zutat aus dem Rezept entfernen ---
+        function removeZutat(id) {
+            currentRecipe.ingredients = currentRecipe.ingredients.filter(zutat => zutat.id !== id);
+            renderZutatenListe();
+            calculateRezept();
+        }
+
+        // --- Zutatenliste im HTML rendern ---
+        function renderZutatenListe() {
+            zutatenListeBody.innerHTML = '';
+            currentRecipe.ingredients.forEach(zutat => {
+                const row = zutatenListeBody.insertRow();
+                const totalCalories = (zutat.kalorienPro100g / (zutat.unitType === 'g/ml' ? 100 : 1)) * zutat.menge;
+                const totalPrice = zutat.preisProEinheit * (zutat.menge / (zutat.unitType === 'g/ml' ? 100 : 1));
+
+                row.innerHTML = `
+                    <td>${zutat.name}</td>
+                    <td>${zutat.menge} ${zutat.unitType === 'g/ml' ? 'g/ml' : 'Stk.'}</td>
+                    <td>${zutat.preisProEinheit.toFixed(2)}</td>
+                    <td>${totalPrice.toFixed(2)}</td>
+                    <td>${zutat.kalorienPro100g.toFixed(0)}</td>
+                    <td>${totalCalories.toFixed(0)}</td>
+                    <td><button class="remove-btn" onclick="removeZutat(${zutat.id})">Entfernen</button></td>
+                `;
+            });
+        }
+
+        // --- Rezept neu berechnen ---
+        function calculateRezept() {
+            let gesamtKosten = 0;
+            let gesamtKalorien = 0;
+
+            currentRecipe.ingredients.forEach(zutat => {
+                const caloriesPerUnit = zutat.kalorienPro100g / (zutat.unitType === 'g/ml' ? 100 : 1);
+                const pricePerUnit = zutat.preisProEinheit / (zutat.unitType === 'g/ml' ? 100 : 1);
+
+                gesamtKosten += pricePerUnit * zutat.menge;
+                gesamtKalorien += caloriesPerUnit * zutat.menge;
+            });
+
+            const portions = parseFloat(portionsAnzahlInput.value) || 1;
+            const preisProPortion = gesamtKosten / portions;
+            const kalorienProPortion = gesamtKalorien / portions;
+
+            document.getElementById('gesamtKosten').textContent = gesamtKosten.toFixed(2) + ' €';
+            document.getElementById('gesamtKalorien').textContent = gesamtKalorien.toFixed(0) + ' kcal';
+            document.getElementById('preisProPortion').textContent = preisProPortion.toFixed(2) + ' €';
+            document.getElementById('kalorienProPortion').textContent = kalorienProPortion.toFixed(0) + ' kcal';
+
+            currentRecipe.name = rezeptNameInput.value;
+            currentRecipe.portions = portions;
+            currentRecipe.instructions = zubereitungsAnleitungInput.value;
+            currentRezeptNameSpan.textContent = currentRecipe.name || 'Neues Rezept';
+        }
+
+        // --- Formular leeren / Neues Rezept starten ---
+        function clearForm() {
+            if (confirm('Möchten Sie wirklich ein neues, leeres Rezept starten? Alle nicht gespeicherten Änderungen gehen verloren.')) {
+                rezeptNameInput.value = '';
+                portionsAnzahlInput.value = 10;
+                zubereitungsAnleitungInput.value = '';
+                currentRecipe = {
+                    name: '',
+                    portions: 10,
+                    instructions: '',
+                    ingredients: []
+                };
+                renderZutatenListe();
+                calculateRezept();
+                currentRezeptNameSpan.textContent = 'Neues Rezept';
+                lebensmittelAuswahl.value = ''; // Reset dropdown
+                mengeInput.value = 100;
+                preisProEinheitInput.value = 0.50;
+            }
+        }
+
+        // --- Rezept im LocalStorage speichern ---
+        function saveCurrentRecipe() {
+            if (!currentRecipe.name) {
+                alert('Bitte geben Sie einen Rezeptnamen ein, bevor Sie speichern.');
+                return;
+            }
+
+            // Prüfen, ob das Rezept bereits existiert (Update-Funktion)
+            const existingRecipeIndex = storedRecipes.findIndex(r => r.name === currentRecipe.name);
+
+            if (existingRecipeIndex > -1) {
+                if (confirm(`Das Rezept "${currentRecipe.name}" existiert bereits. Möchten Sie es aktualisieren?`)) {
+                    storedRecipes[existingRecipeIndex] = JSON.parse(JSON.stringify(currentRecipe)); // Deep copy
+                    alert('Rezept aktualisiert!');
+                } else {
+                    return; // Speichern abbrechen
+                }
+            } else {
+                storedRecipes.push(JSON.parse(JSON.stringify(currentRecipe))); // Deep copy, um Referenzprobleme zu vermeiden
+                alert('Rezept gespeichert!');
+            }
+            
+            localStorage.setItem('rezepte', JSON.stringify(storedRecipes));
+            renderStoredRecipes();
+        }
+
+        // --- Rezepte aus LocalStorage laden ---
+        function loadStoredRecipes() {
+            const data = localStorage.getItem('rezepte');
+            if (data) {
+                storedRecipes = JSON.parse(data);
+            }
+            renderStoredRecipes();
+        }
+
+        // --- Liste der gespeicherten Rezepte rendern ---
+        function renderStoredRecipes() {
+            gespeicherteRezepteListe.innerHTML = '';
+            if (storedRecipes.length === 0) {
+                gespeicherteRezepteListe.innerHTML = '<li>Keine Rezepte gespeichert.</li>';
+                return;
+            }
+
+            storedRecipes.forEach((recipe, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${recipe.name} (${recipe.portions} Portionen)</span>
+                    <div>
+                        <button onclick="loadRecipe(${index})">Laden</button>
+                        <button class="danger" onclick="deleteRecipe(${index})">Löschen</button>
+                    </div>
+                `;
+                gespeicherteRezepteListe.appendChild(li);
+            });
+        }
+
+        // --- Ein gespeichertes Rezept ins Formular laden ---
+        function loadRecipe(index) {
+            const recipeToLoad = storedRecipes[index];
+            if (confirm(`Möchten Sie das Rezept "${recipeToLoad.name}" laden? Ungespeicherte Änderungen gehen verloren.`)) {
+                currentRecipe = JSON.parse(JSON.stringify(recipeToLoad)); // Deep copy
+                rezeptNameInput.value = currentRecipe.name;
+                portionsAnzahlInput.value = currentRecipe.portions;
+                zubereitungsAnleitungInput.value = currentRecipe.instructions;
+                currentRezeptNameSpan.textContent = currentRecipe.name;
+                renderZutatenListe();
+                calculateRezept();
+            }
+        }
+
+        // --- Ein gespeichertes Rezept löschen ---
+        function deleteRecipe(index) {
+            if (confirm(`Möchten Sie das Rezept "${storedRecipes[index].name}" wirklich löschen?`)) {
+                storedRecipes.splice(index, 1);
+                localStorage.setItem('rezepte', JSON.stringify(storedRecipes));
+                renderStoredRecipes();
+                // Wenn das aktuell geladene Rezept gelöscht wird, Formular leeren
+                if (currentRecipe.name === storedRecipes[index]?.name) { // Check if still exists in the array
+                    clearForm();
+                }
+            }
+        }
+
+
+        // --- Initialer Aufruf beim Laden der Seite ---
+        document.addEventListener('DOMContentLoaded', () => {
+            populateLebensmittelDropdown();
+            loadStoredRecipes();
+            calculateRezept(); // Initialberechnung für leeres Rezept
+        });
+    </script>
+</body>
+</html>
